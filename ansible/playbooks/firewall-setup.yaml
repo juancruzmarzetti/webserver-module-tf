@@ -1,0 +1,47 @@
+---
+
+
+- hosts: ec2
+  vars:
+    port1: 80
+    port2: 22
+    proto1: tcp
+    proto2: ssh
+  tasks:
+    - name: install ufw
+      apt:
+        name: ufw
+        state: present
+        update_cache: yes
+    - name: enable ufw
+      ufw:
+        state: enabled
+        logging: 'on'
+        direction: incoming
+    - name: Instalar la colección community.general si no está presente
+      ansible.builtin.command: ansible-galaxy collection install community.general
+      register: install_result
+      changed_when: "'Installed' in install_result.stdout"
+    - name: allow port {{ port1 }}
+      ufw:
+        rule: allow
+        port: "{{ port1 }}"
+        proto: "{{ proto1 }}"
+    - name: allow port {{ port2 }}
+      ufw:
+        rule: allow
+        port: "{{ port2 }}"
+        proto: "{{ proto2 }}"
+    - name: Instalar fail2ban
+      apt:
+        name: fail2ban
+        state: present
+        update_cache: yes
+    - name: Crear usuario llamado devops con acceso SSH
+      community.general.user:
+        name: devops
+        state: present
+        shell: /bin/bash
+        create_home: yes
+        groups: sudo
+        append: yes
